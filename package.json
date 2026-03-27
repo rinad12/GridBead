@@ -1,12 +1,21 @@
 {
   "name": "gridbead",
+  "productName": "GridBead Studio",
+  "description": "Professional beadwork pattern designer with multi-stitch support",
+  "author": "GridBead Studio",
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "main": "main.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "electron": "NODE_ENV=development electron .",
+    "electron:win": "set NODE_ENV=development && electron .",
+    "setup-cache": "node scripts/setup-wincsc.mjs",
+    "electron:build": "set CSC_IDENTITY_AUTO_DISCOVERY=false && node scripts/setup-wincsc.mjs && vite build && electron-builder --dir",
+    "electron:installer": "set CSC_IDENTITY_AUTO_DISCOVERY=false && node scripts/setup-wincsc.mjs && vite build && electron-builder"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -15,8 +24,41 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.0.0",
     "autoprefixer": "^10.4.14",
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.0",
     "postcss": "^8.4.24",
     "tailwindcss": "^3.3.2",
     "vite": "^4.3.9"
+  },
+  "build": {
+    "appId": "com.gridbead.studio",
+    "productName": "GridBead Studio",
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "src/preload.cjs",
+      "icon.png",
+      "icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": "beadgrid",
+        "name": "GridBead Pattern File",
+        "description": "Manual beadwork design project created in GridBead Studio",
+        "icon": "icon.ico",
+        "role": "Editor"
+      }
+    ],
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "icon.png"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }

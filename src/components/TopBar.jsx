@@ -32,7 +32,7 @@ export default function TopBar({
 
       {/* Logo */}
       <div className="flex items-center gap-2 mr-3">
-        <img src="/icon.png" alt="GridBead" width="22" height="22" className="rounded-md" />
+        <img src="./icon.png" alt="GridBead" width="22" height="22" className="rounded-md" />
         <span className="font-bold text-studio-text text-base tracking-tight hidden md:block">{t.appName}</span>
       </div>
 

@@ -9,8 +9,8 @@ const locales = {
     view: 'View',
     help: 'Help',
     newProject: 'New Project',
-    open: 'Open',
-    save: 'Save',
+    open: 'Open .beadgrid',
+    save: 'Save .beadgrid',
     exportPng: 'Export PNG',
     about: 'About',
     language: 'Language',
@@ -109,7 +109,7 @@ const locales = {
     recentFiles: 'Recent Files',
     noRecentFiles: 'No recent files yet',
     backToHome: 'Home',
-    saveAs: 'Save As…',
+    saveAs: 'Save As .beadgrid…',
 
     // Status bar
     statusZoom: 'Zoom',
@@ -127,8 +127,8 @@ const locales = {
     view: 'Вид',
     help: 'Справка',
     newProject: 'Новый проект',
-    open: 'Открыть',
-    save: 'Сохранить',
+    open: 'Открыть .beadgrid',
+    save: 'Сохранить .beadgrid',
     exportPng: 'Экспорт PNG',
     about: 'О программе',
     language: 'Язык',
@@ -227,7 +227,7 @@ const locales = {
     recentFiles: 'Последние файлы',
     noRecentFiles: 'Нет последних файлов',
     backToHome: 'Главная',
-    saveAs: 'Сохранить как…',
+    saveAs: 'Сохранить как .beadgrid…',
 
     // Status bar
     statusZoom: 'Масштаб',
