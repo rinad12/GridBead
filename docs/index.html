@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GridBead Studio — Beadwork Design Software for Windows</title>
+  <meta name="description" content="GridBead Studio is a free Windows app for creating loom, brick, and peyote bead patterns with a live bead counter and native .beadgrid file support." />
+  <meta name="keywords" content="beadwork software, peyote patterns, loom beading, brick stitch, bead counter, beading app, GridBead, beadgrid file, free bead pattern designer" />
+  <meta property="og:title" content="GridBead Studio — Beadwork Design Software" />
+  <meta property="og:description" content="Design loom, brick, and peyote bead patterns on Windows. Free download." />
+  <meta property="og:image" content="https://rinad12.github.io/GridBead/icon.png" />
+  <meta property="og:url" content="https://rinad12.github.io/GridBead/" />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Analytics GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'pink-primary': '#FF6FA5',
+            'pink-soft':    '#FFC1D6',
+            'yellow-center':'#FFC83D',
+            'green-leaf':   '#4CAF7D',
+            'green-accent': '#2E8B57',
+            'surface':      '#F7F8FA',
+            'grid-line':    '#E3E6EA',
+            'border-color': '#E5E7EB',
+            'text-primary': '#1A1A1A',
+            'text-secondary':'#6B7280',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #FFFFFF;
+      color: #1A1A1A;
+    }
+
+    /* Animated grid background */
+    .grid-bg {
+      background-color: #F7F8FA;
+      background-image:
+        linear-gradient(#E3E6EA 1px, transparent 1px),
+        linear-gradient(90deg, #E3E6EA 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+
+    /* Flower logo built from CSS */
+    .flower {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
+    .petal {
+      position: absolute;
+      width: 14px;
+      height: 22px;
+      background: #FF6FA5;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      top: 50%; left: 50%;
+      transform-origin: center bottom;
+    }
+    .petal:nth-child(1)  { transform: translate(-50%, -100%) rotate(0deg); }
+    .petal:nth-child(2)  { transform: translate(-50%, -100%) rotate(45deg); }
+    .petal:nth-child(3)  { transform: translate(-50%, -100%) rotate(90deg); }
+    .petal:nth-child(4)  { transform: translate(-50%, -100%) rotate(135deg); }
+    .petal:nth-child(5)  { transform: translate(-50%, -100%) rotate(180deg); }
+    .petal:nth-child(6)  { transform: translate(-50%, -100%) rotate(225deg); }
+    .petal:nth-child(7)  { transform: translate(-50%, -100%) rotate(270deg); }
+    .petal:nth-child(8)  { transform: translate(-50%, -100%) rotate(315deg); }
+    .flower-center {
+      position: absolute;
+      width: 16px; height: 16px;
+      background: #FFC83D;
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+
+    /* Download button */
+    .btn-download {
+      background: #FF6FA5;
+      color: #fff;
+      transition: background 0.18s, transform 0.14s, box-shadow 0.18s;
+    }
+    .btn-download:hover {
+      background: #e85e93;
+      transform: translateY(-2px);
+      box-shadow: 0 10px 32px rgba(255, 111, 165, 0.38);
+    }
+    .btn-download:active { transform: translateY(0); }
+
+    /* Language toggle */
+    .lang-btn {
+      padding: 6px 18px;
+      border-radius: 999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: background 0.15s, color 0.15s;
+      cursor: pointer;
+      color: #6B7280;
+      background: transparent;
+      border: none;
+    }
+    .lang-btn.active {
+      background: #FF6FA5;
+      color: #fff;
+    }
+
+    /* Feature cards */
+    .feature-card {
+      background: #FFFFFF;
+      border: 1px solid #E5E7EB;
+      border-radius: 20px;
+      padding: 28px;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      box-shadow: 0 8px 28px rgba(255, 111, 165, 0.14);
+      transform: translateY(-4px);
+    }
+    .feature-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 16px;
+    }
+
+    /* Bead dots decoration */
+    .bead-row {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 28px;
+    }
+    .bead-dot {
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    /* Code pill */
+    .code-pill {
+      background: #F7F8FA;
+      border: 1px solid #E5E7EB;
+      border-radius: 6px;
+      padding: 1px 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85em;
+      color: #1A1A1A;
+    }
+  </style>
+</head>
+<body class="antialiased">
+
+  <!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+  <nav class="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-[#E5E7EB] shadow-sm">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 py-3 flex items-center justify-between gap-4">
+
+      <!-- Brand -->
+      <a href="#" class="flex items-center gap-3 group min-w-0">
+        <img src="icon.png" alt="GridBead Studio"
+             class="w-9 h-9 rounded-xl shadow-sm flex-shrink-0 group-hover:scale-105 transition-transform duration-200"
+             onerror="this.replaceWith(document.querySelector('.flower-nav').cloneNode(true))" />
+        <!-- Fallback flower (hidden, used by onerror) -->
+        <span class="flower-nav hidden" style="display:none">
+          <div class="flower" style="width:36px;height:36px" aria-hidden="true">
+            <div class="petal" style="width:11px;height:17px;background:#FF6FA5"></div>
+            <div class="petal" style="width:11px;height:17px;background:#FF6FA5"></div>
+            <div class="petal" style="width:11px;height:17px;background:#FF6FA5"></div>
+            <div class="petal" style="width:11px;height:17px;background:#FF6FA5"></div>
+            <div class="petal" style="width:11px;height:17px;background:#FF6FA5"></div>
+            <div class="petal" style="width:11px;height:17px;background:#FF6FA5"></div>
+            <div class="flower-center" style="width:12px;height:12px"></div>
+          </div>
+        </span>
+        <span class="font-bold text-[17px] tracking-tight text-[#1A1A1A] truncate" data-i18n="nav_name">GridBead Studio</span>
+      </a>
+
+      <!-- Language switcher -->
+      <div class="flex items-center gap-0.5 bg-[#F7F8FA] border border-[#E5E7EB] rounded-full p-1 flex-shrink-0">
+        <button id="btn-en" class="lang-btn active" onclick="setLang('en')">EN</button>
+        <button id="btn-ru" class="lang-btn" onclick="setLang('ru')">RU</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+  <section class="grid-bg py-24 sm:py-32 px-5">
+    <div class="max-w-3xl mx-auto text-center">
+
+      <!-- Bead decoration -->
+      <div class="bead-row" aria-hidden="true">
+        <span class="bead-dot" style="background:#FF6FA5"></span>
+        <span class="bead-dot" style="background:#FFC1D6"></span>
+        <span class="bead-dot" style="background:#FF6FA5"></span>
+        <span class="bead-dot" style="background:#FFC83D"></span>
+        <span class="bead-dot" style="background:#4CAF7D"></span>
+        <span class="bead-dot" style="background:#a78bfa"></span>
+        <span class="bead-dot" style="background:#60a5fa"></span>
+        <span class="bead-dot" style="background:#4CAF7D"></span>
+        <span class="bead-dot" style="background:#FFC83D"></span>
+        <span class="bead-dot" style="background:#FF6FA5"></span>
+        <span class="bead-dot" style="background:#FFC1D6"></span>
+        <span class="bead-dot" style="background:#FF6FA5"></span>
+      </div>
+
+      <!-- Logo + App name -->
+      <div class="flex items-center justify-center gap-4 mb-6">
+        <img src="icon.png" alt="GridBead Studio icon"
+             class="w-16 h-16 rounded-2xl shadow-lg"
+             onerror="this.style.display='none'" />
+        <div class="text-left">
+          <div class="text-sm font-medium text-[#FF6FA5] uppercase tracking-widest mb-0.5" data-i18n="hero_eyebrow">Free for Windows</div>
+          <div class="text-2xl sm:text-3xl font-extrabold text-[#1A1A1A]">GridBead Studio</div>
+        </div>
+      </div>
+
+      <!-- Headline -->
+      <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#1A1A1A] leading-tight mb-5" data-i18n="hero_title">
+        Design Bead Patterns<br /><span style="color:#FF6FA5">Without Limits</span>
+      </h1>
+
+      <!-- Subtext -->
+      <p class="text-lg sm:text-xl text-[#6B7280] max-w-xl mx-auto mb-10 leading-relaxed" data-i18n="hero_desc">
+        A free Windows app for creating loom, brick, and peyote bead patterns — with a live color counter and native <span class="code-pill">.beadgrid</span> file support.
+      </p>
+
+      <!-- CTA -->
+      <div class="flex flex-col items-center gap-3">
+        <a id="download-btn"
+           href="https://github.com/rinad12/GridBead/releases/download/v1.0.0/GridBead.Studio.Setup.1.0.0.exe"
+           class="btn-download inline-flex items-center gap-3 text-lg font-bold px-9 py-4 rounded-2xl shadow-lg"
+           data-i18n="download_btn">
+          <!-- icon injected by JS -->
+          Download for Windows
+        </a>
+        <p class="text-sm text-[#6B7280]" data-i18n="download_meta">Version 1.0.0 &nbsp;·&nbsp; Setup Wizard (.exe) &nbsp;·&nbsp; Windows 10/11</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ FEATURES ═══════════════════════════ -->
+  <section id="features" class="py-20 sm:py-24 px-5 bg-white">
+    <div class="max-w-6xl mx-auto">
+
+      <div class="text-center mb-14">
+        <h2 class="text-3xl sm:text-4xl font-bold text-[#1A1A1A] mb-3" data-i18n="features_title">
+          Everything You Need to Create
+        </h2>
+        <p class="text-[#6B7280] text-lg max-w-xl mx-auto" data-i18n="features_sub">
+          Powerful, focused tools designed for bead artists of every level.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+
+        <!-- Card 1: Stitches -->
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#FFF0F5;">🧵</div>
+          <h3 class="text-lg font-bold text-[#1A1A1A] mb-2" data-i18n="feat1_title">Three Stitch Types</h3>
+          <p class="text-[#6B7280] text-sm leading-relaxed mb-4" data-i18n="feat1_desc">
+            Full support for Loom, Brick, and Peyote layouts — each rendered with authentic grid geometry and correct offset logic.
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs font-semibold px-3 py-1 rounded-full" style="background:#FFF0F5;color:#FF6FA5;border:1px solid #FFC1D6">Loom</span>
+            <span class="text-xs font-semibold px-3 py-1 rounded-full" style="background:#FFF0F5;color:#FF6FA5;border:1px solid #FFC1D6">Brick</span>
+            <span class="text-xs font-semibold px-3 py-1 rounded-full" style="background:#FFF0F5;color:#FF6FA5;border:1px solid #FFC1D6">Peyote</span>
+          </div>
+        </div>
+
+        <!-- Card 2: File Association -->
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#F0FFF8;">📂</div>
+          <h3 class="text-lg font-bold text-[#1A1A1A] mb-2" data-i18n="feat2_title">Native File Format</h3>
+          <p class="text-[#6B7280] text-sm leading-relaxed mb-4" data-i18n="feat2_desc">
+            Save your work as <span class="code-pill">.beadgrid</span> files. Double-click them in Windows Explorer to open instantly — no extra steps.
+          </p>
+          <!-- File pill mockup -->
+          <div class="inline-flex items-center gap-2 rounded-xl px-3 py-2.5" style="background:#F7F8FA;border:1px solid #E5E7EB;">
+            <img src="icon.png" alt="" class="w-5 h-5 rounded" onerror="this.style.display='none'" />
+            <span class="text-xs font-mono text-[#1A1A1A]">my_pattern.beadgrid</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Bead Counter -->
+        <div class="feature-card">
+          <div class="feature-icon" style="background:#FFFBF0;">🔢</div>
+          <h3 class="text-lg font-bold text-[#1A1A1A] mb-2" data-i18n="feat3_title">Live Bead Counter</h3>
+          <p class="text-[#6B7280] text-sm leading-relaxed mb-4" data-i18n="feat3_desc">
+            The count per color updates automatically as you paint. Always know exactly how many beads to buy.
+          </p>
+          <!-- Counter mockup -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs text-[#6B7280]">
+              <span class="flex items-center gap-1.5">
+                <span class="bead-dot" style="width:10px;height:10px;background:#FF6FA5"></span> Pink
+              </span>
+              <span class="font-semibold text-[#1A1A1A]">48</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-[#6B7280]">
+              <span class="flex items-center gap-1.5">
+                <span class="bead-dot" style="width:10px;height:10px;background:#4CAF7D"></span> Mint
+              </span>
+              <span class="font-semibold text-[#1A1A1A]">32</span>
+            </div>
+            <div class="flex items-center justify-between text-xs text-[#6B7280]">
+              <span class="flex items-center gap-1.5">
+                <span class="bead-dot" style="width:10px;height:10px;background:#FFC83D"></span> Yellow
+              </span>
+              <span class="font-semibold text-[#1A1A1A]">17</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ SUPPORT ═══════════════════════════ -->
+  <section id="support" class="py-16 sm:py-20 px-5 bg-[#F7F8FA] border-t border-[#E5E7EB]">
+    <div class="max-w-3xl mx-auto text-center">
+      <h2 class="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3" data-i18n="support_title">Support & Community</h2>
+      <p class="text-[#6B7280] mb-10" data-i18n="support_desc">
+        GridBead Studio is open source. Browse the code, file a bug report, or suggest a new feature.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <!-- GitHub link -->
+        <a href="https://github.com/rinad12/GridBead"
+           target="_blank" rel="noopener noreferrer"
+           class="inline-flex items-center gap-2.5 font-semibold px-6 py-3.5 rounded-xl shadow-sm transition-all hover:-translate-y-0.5"
+           style="background:#1A1A1A;color:#fff"
+           onmouseover="this.style.background='#333'"
+           onmouseout="this.style.background='#1A1A1A'"
+           data-i18n="github_btn">
+          <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.418 2.865 8.166 6.839 9.489.5.092.682-.217.682-.483
+              0-.237-.009-.868-.013-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.462-1.11-1.462
+              -.908-.62.069-.608.069-.608 1.003.07 1.531 1.031 1.531 1.031.892 1.53 2.341 1.088 2.91.832
+              .092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683
+              -.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844a9.59 9.59 0
+              012.504.337c1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.202 2.394.1 2.647.64.699 1.028
+              1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012
+              2.415-.012 2.743 0 .268.18.58.688.482A10.001 10.001 0 0022 12c0-5.523-4.477-10-10-10z"/>
+          </svg>
+          GitHub Repository
+        </a>
+
+        <!-- Issues link -->
+        <a href="https://github.com/rinad12/GridBead/issues"
+           target="_blank" rel="noopener noreferrer"
+           class="inline-flex items-center gap-2.5 font-semibold px-6 py-3.5 rounded-xl shadow-sm border transition-all hover:-translate-y-0.5"
+           style="background:#fff;border-color:#E5E7EB;color:#1A1A1A"
+           onmouseover="this.style.borderColor='#FF6FA5';this.style.color='#FF6FA5'"
+           onmouseout="this.style.borderColor='#E5E7EB';this.style.color='#1A1A1A'"
+           data-i18n="issues_btn">
+          <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Report a Bug / Suggest a Feature
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+  <footer class="py-10 px-5 bg-white border-t border-[#E5E7EB]">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-5 text-sm text-[#6B7280]">
+      <span data-i18n="footer_copy">&copy; 2024–2026 GridBead Studio &mdash; Free &amp; open source.</span>
+      <a href="https://github.com/rinad12/GridBead/releases" target="_blank" rel="noopener noreferrer"
+         class="hover:opacity-80 transition-opacity">
+        <img src="https://img.shields.io/github/downloads/rinad12/GridBead/total?color=FF6FA5&label=Total%20Downloads&style=flat-square"
+             alt="Total Downloads badge"
+             class="h-5" />
+      </a>
+    </div>
+  </footer>
+
+  <!-- ═══════════════════════════ SCRIPTS ═══════════════════════════ -->
+  <script>
+    // ── Download button icon ──────────────────────────────────────────
+    const ICON_SVG = `<svg class="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 16l-6-6h4V4h4v6h4l-6 6zm-7 2h14v2H5v-2z"/></svg>`;
+
+    // ── Translations ──────────────────────────────────────────────────
+    const T = {
+      en: {
+        nav_name:       'GridBead Studio',
+        hero_eyebrow:   'Free for Windows',
+        hero_title:     'Design Bead Patterns<br /><span style="color:#FF6FA5">Without Limits</span>',
+        hero_desc:      'A free Windows app for creating loom, brick, and peyote bead patterns — with a live color counter and native <span class="code-pill">.beadgrid</span> file support.',
+        download_btn:   'Download for Windows',
+        download_meta:  'Version 1.0.0 &nbsp;·&nbsp; Setup Wizard (.exe) &nbsp;·&nbsp; Windows 10/11',
+        features_title: 'Everything You Need to Create',
+        features_sub:   'Powerful, focused tools designed for bead artists of every level.',
+        feat1_title:    'Three Stitch Types',
+        feat1_desc:     'Full support for Loom, Brick, and Peyote layouts — each rendered with authentic grid geometry and correct offset logic.',
+        feat2_title:    'Native File Format',
+        feat2_desc:     'Save your work as <span class="code-pill">.beadgrid</span> files. Double-click them in Windows Explorer to open instantly — no extra steps.',
+        feat3_title:    'Live Bead Counter',
+        feat3_desc:     'The count per color updates automatically as you paint. Always know exactly how many beads to buy.',
+        support_title:  'Support & Community',
+        support_desc:   'GridBead Studio is open source. Browse the code, file a bug report, or suggest a new feature.',
+        github_btn:     'GitHub Repository',
+        issues_btn:     'Report a Bug / Suggest a Feature',
+        footer_copy:    '&copy; 2024–2026 GridBead Studio &mdash; Free &amp; open source.',
+      },
+      ru: {
+        nav_name:       'GridBead Studio',
+        hero_eyebrow:   'Бесплатно для Windows',
+        hero_title:     'Создавайте схемы бисера<br /><span style="color:#FF6FA5">без ограничений</span>',
+        hero_desc:      'Бесплатное приложение для Windows: ткацкий станок, кирпичный и перейот-стежок — с живым счётчиком цветов и нативным форматом <span class="code-pill">.beadgrid</span>.',
+        download_btn:   'Скачать для Windows',
+        download_meta:  'Версия 1.0.0 &nbsp;·&nbsp; Установщик (.exe) &nbsp;·&nbsp; Windows 10/11',
+        features_title: 'Всё для вашего творчества',
+        features_sub:   'Мощные инструменты для мастеров бисероплетения любого уровня.',
+        feat1_title:    'Три вида стежков',
+        feat1_desc:     'Полная поддержка ткацкого станка, кирпичного и перейот-стежков — с подлинной геометрией сетки и правильными смещениями.',
+        feat2_title:    'Нативный формат файла',
+        feat2_desc:     'Сохраняйте работу в файлах <span class="code-pill">.beadgrid</span>. Двойной щелчок в Проводнике — и схема открыта.',
+        feat3_title:    'Живой счётчик бисера',
+        feat3_desc:     'Количество бисерин по каждому цвету обновляется автоматически. Всегда знайте, сколько бисера купить.',
+        support_title:  'Поддержка и сообщество',
+        support_desc:   'GridBead Studio — проект с открытым кодом. Смотрите код, сообщайте об ошибках или предлагайте новые функции.',
+        github_btn:     'Репозиторий на GitHub',
+        issues_btn:     'Сообщить об ошибке / предложить функцию',
+        footer_copy:    '&copy; 2024–2026 GridBead Studio &mdash; бесплатный открытый проект.',
+      }
+    };
+
+    let lang = 'en';
+
+    function setLang(l) {
+      lang = l;
+      const t = T[l];
+
+      // Translate all data-i18n elements (text-only, not buttons with icons)
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (!t[key]) return;
+
+        // Download button: prepend icon SVG
+        if (key === 'download_btn') {
+          el.innerHTML = ICON_SVG + ' ' + t[key];
+        } else if (key === 'github_btn' || key === 'issues_btn') {
+          // Keep existing SVG icon, only swap text node
+          const svgEl = el.querySelector('svg');
+          el.innerHTML = '';
+          if (svgEl) el.appendChild(svgEl);
+          el.insertAdjacentText('beforeend', ' ' + t[key]);
+        } else {
+          el.innerHTML = t[key];
+        }
+      });
+
+      // Update <html lang>
+      document.documentElement.lang = l;
+
+      // Toggle button active state
+      document.getElementById('btn-en').classList.toggle('active', l === 'en');
+      document.getElementById('btn-ru').classList.toggle('active', l === 'ru');
+    }
+
+    // Init: inject download icon on first load
+    document.addEventListener('DOMContentLoaded', () => {
+      const dlBtn = document.getElementById('download-btn');
+      if (dlBtn) dlBtn.innerHTML = ICON_SVG + ' ' + T.en.download_btn;
+    });
+  </script>
+</body>
+</html>
