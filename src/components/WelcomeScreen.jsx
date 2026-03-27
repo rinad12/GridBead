@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { loadRecentFiles } from '../utils/fileUtils.js';
+import { loadRecentFiles, removeRecentFile } from '../utils/fileUtils.js';
 
 function formatDate(iso) {
   try {
@@ -12,7 +12,13 @@ function formatDate(iso) {
 }
 
 export default function WelcomeScreen({ onNew, onOpen, onOpenRecent, t, language, isDark, onToggleTheme, setLanguage }) {
-  const [recentFiles] = useState(() => loadRecentFiles());
+  const [recentFiles, setRecentFiles] = useState(() => loadRecentFiles());
+
+  const handleRemoveRecent = (e, filePath) => {
+    e.stopPropagation();
+    removeRecentFile(filePath);
+    setRecentFiles((prev) => prev.filter((f) => f.filePath !== filePath));
+  };
 
   return (
     <div className="flex flex-col h-full bg-studio-bg text-studio-text">
@@ -74,19 +80,29 @@ export default function WelcomeScreen({ onNew, onOpen, onOpenRecent, t, language
               </p>
               <div className="flex flex-col gap-1">
                 {recentFiles.map((f, i) => (
-                  <button
-                    key={i}
-                    onClick={() => (onOpenRecent ?? onOpen)(f.filePath)}
-                    className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl bg-studio-panel border border-studio-border hover:border-studio-muted transition-colors group"
-                  >
-                    <IconFile className="text-studio-accent flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm text-studio-text truncate group-hover:text-studio-accent transition-colors">
-                        {f.name}
+                  <div key={i} className="relative group/row">
+                    <button
+                      onClick={() => (onOpenRecent ?? onOpen)(f.filePath)}
+                      className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl bg-studio-panel border border-studio-border hover:border-studio-muted transition-colors group"
+                    >
+                      <IconFile className="text-studio-accent flex-shrink-0" />
+                      <div className="flex-1 min-w-0 pr-5">
+                        <div className="text-sm text-studio-text truncate group-hover:text-studio-accent transition-colors">
+                          {f.name}
+                        </div>
+                        <div className="text-[11px] text-studio-muted">{formatDate(f.savedAt)}</div>
                       </div>
-                      <div className="text-[11px] text-studio-muted">{formatDate(f.savedAt)}</div>
-                    </div>
-                  </button>
+                    </button>
+                    <button
+                      onClick={(e) => handleRemoveRecent(e, f.filePath)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded text-studio-muted hover:text-studio-text opacity-0 group-hover/row:opacity-100 transition-opacity"
+                      title="Remove from list"
+                    >
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

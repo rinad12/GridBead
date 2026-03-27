@@ -473,7 +473,8 @@ const RECENT_KEY = 'gridbead_recent_files';
 
 export function loadRecentFiles() {
   try {
-    return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    const all = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+    return all.filter((f) => f.filePath);
   } catch {
     return [];
   }
@@ -483,4 +484,9 @@ export function pushRecentFile(name, filePath = null) {
   const files = loadRecentFiles().filter((f) => f.name !== name);
   files.unshift({ name, filePath, savedAt: new Date().toISOString() });
   localStorage.setItem(RECENT_KEY, JSON.stringify(files.slice(0, 5)));
+}
+
+export function removeRecentFile(filePath) {
+  const files = loadRecentFiles().filter((f) => f.filePath !== filePath);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(files));
 }
