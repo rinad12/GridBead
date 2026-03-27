@@ -87,6 +87,14 @@ const locales = {
 
     // Confirm dialogs
     confirmNew: 'Start a new project? Unsaved changes will be lost.',
+    unsavedChanges: 'You have unsaved changes. Continue anyway?',
+
+    // Welcome screen
+    openPattern: 'Open Pattern',
+    recentFiles: 'Recent Files',
+    noRecentFiles: 'No recent files yet',
+    backToHome: 'Home',
+    saveAs: 'Save As…',
 
     // Status bar
     statusZoom: 'Zoom',
@@ -182,6 +190,14 @@ const locales = {
 
     // Confirm
     confirmNew: 'Начать новый проект? Несохранённые изменения будут потеряны.',
+    unsavedChanges: 'Есть несохранённые изменения. Продолжить?',
+
+    // Welcome screen
+    openPattern: 'Открыть узор',
+    recentFiles: 'Последние файлы',
+    noRecentFiles: 'Нет последних файлов',
+    backToHome: 'Главная',
+    saveAs: 'Сохранить как…',
 
     // Status bar
     statusZoom: 'Масштаб',

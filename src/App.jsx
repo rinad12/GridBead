@@ -1,12 +1,17 @@
-import { useReducer, useState, useCallback } from 'react';
+import { useReducer, useState, useCallback, useEffect } from 'react';
 import locales from './locales.js';
 import { floodFill } from './utils/floodFill.js';
-import { downloadBead, openBeadFile, exportPng } from './utils/fileUtils.js';
+import {
+  saveBeadNative, saveBeadAs,
+  openBeadNative, exportPngNative,
+  pushRecentFile,
+} from './utils/fileUtils.js';
 
 import TopBar from './components/TopBar.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import BeadCanvas from './components/BeadCanvas.jsx';
 import BeadCounter from './components/BeadCounter.jsx';
+import WelcomeScreen from './components/WelcomeScreen.jsx';
 import NewProjectModal from './components/NewProjectModal.jsx';
 import ColorEditModal from './components/ColorEditModal.jsx';
 import ExportModal from './components/ExportModal.jsx';
@@ -16,20 +21,20 @@ import AboutModal from './components/AboutModal.jsx';
 // Default color palette
 // ─────────────────────────────────────────────
 const DEFAULT_COLORS = [
-  { id: 'c1',  name: 'White',      hex: '#FFFFFF' },
-  { id: 'c2',  name: 'Black',      hex: '#1A1A1A' },
-  { id: 'c3',  name: 'Red',        hex: '#E53E3E' },
-  { id: 'c4',  name: 'Orange',     hex: '#ED8936' },
-  { id: 'c5',  name: 'Yellow',     hex: '#ECC94B' },
-  { id: 'c6',  name: 'Lime',       hex: '#68D391' },
-  { id: 'c7',  name: 'Teal',       hex: '#38B2AC' },
-  { id: 'c8',  name: 'Sky',        hex: '#63B3ED' },
-  { id: 'c9',  name: 'Blue',       hex: '#4C51BF' },
-  { id: 'c10', name: 'Purple',     hex: '#9F7AEA' },
-  { id: 'c11', name: 'Pink',       hex: '#ED64A6' },
-  { id: 'c12', name: 'Brown',      hex: '#A0522D' },
-  { id: 'c13', name: 'Silver',     hex: '#A0AEC0' },
-  { id: 'c14', name: 'Gold',       hex: '#D69E2E' },
+  { id: 'c1',  name: 'White',  hex: '#FFFFFF' },
+  { id: 'c2',  name: 'Black',  hex: '#1A1A1A' },
+  { id: 'c3',  name: 'Red',    hex: '#E53E3E' },
+  { id: 'c4',  name: 'Orange', hex: '#ED8936' },
+  { id: 'c5',  name: 'Yellow', hex: '#ECC94B' },
+  { id: 'c6',  name: 'Lime',   hex: '#68D391' },
+  { id: 'c7',  name: 'Teal',   hex: '#38B2AC' },
+  { id: 'c8',  name: 'Sky',    hex: '#63B3ED' },
+  { id: 'c9',  name: 'Blue',   hex: '#4C51BF' },
+  { id: 'c10', name: 'Purple', hex: '#9F7AEA' },
+  { id: 'c11', name: 'Pink',   hex: '#ED64A6' },
+  { id: 'c12', name: 'Brown',  hex: '#A0522D' },
+  { id: 'c13', name: 'Silver', hex: '#A0AEC0' },
+  { id: 'c14', name: 'Gold',   hex: '#D69E2E' },
 ];
 
 // ─────────────────────────────────────────────
@@ -40,7 +45,7 @@ const initialState = {
   gridType: 'square',
   width: 20,
   height: 20,
-  cells: {},             // { "col,row": "#RRGGBB" }
+  cells: {},
   colors: DEFAULT_COLORS,
   selectedColorId: 'c1',
   tool: 'pencil',
@@ -48,6 +53,13 @@ const initialState = {
 };
 
 let colorIdCounter = DEFAULT_COLORS.length + 1;
+
+// Actions that mark the project as having unsaved changes
+const DIRTY_ACTIONS = new Set([
+  'SET_CELL', 'ERASE_CELL', 'FLOOD_FILL',
+  'ADD_COLOR', 'UPDATE_COLOR', 'DELETE_COLOR',
+  'RESIZE_GRID', 'SET_GRID_TYPE', 'SET_PROJECT_NAME',
+]);
 
 function reducer(state, action) {
   switch (action.type) {
@@ -84,7 +96,7 @@ function reducer(state, action) {
     case 'NEW_PROJECT':
       return {
         ...initialState,
-        colors: state.colors, // keep palette by default
+        colors: state.colors,
         ...action.data,
         cells: action.data.cells ?? {},
       };
@@ -139,10 +151,34 @@ function reducer(state, action) {
 // App
 // ─────────────────────────────────────────────
 export default function App() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, rawDispatch] = useReducer(reducer, initialState);
   const [language, setLanguage] = useState('en');
   const [isDark, setIsDark] = useState(true);
+
+  // Screen: 'welcome' | 'canvas'
+  const [screen, setScreen] = useState('welcome');
+  const [isDirty, setIsDirty] = useState(false);
+  const [fileHandle, setFileHandle] = useState(null); // FileSystemFileHandle | null
+
   const t = locales[language];
+
+  // Wrap dispatch to track dirty state
+  const dispatch = useCallback((action) => {
+    rawDispatch(action);
+    if (DIRTY_ACTIONS.has(action.type)) setIsDirty(true);
+  }, []);
+
+  // Warn before browser close when there are unsaved changes
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (isDirty && screen === 'canvas') {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty, screen]);
 
   const toggleTheme = useCallback(() => {
     setIsDark((prev) => {
@@ -153,12 +189,20 @@ export default function App() {
   }, []);
 
   // Modal states
-  const [modal, setModal] = useState(null); // 'new' | 'color-add' | 'color-edit' | 'export' | 'about'
+  const [modal, setModal] = useState(null);
   const [editingColorId, setEditingColorId] = useState(null);
 
   const selectedColor = state.colors.find((c) => c.id === state.selectedColorId);
 
-  // ── Canvas paint handler ──────────────────────
+  // ── Navigation ────────────────────────────────
+  const handleGoHome = useCallback(() => {
+    if (isDirty && !window.confirm(t.unsavedChanges)) return;
+    setScreen('welcome');
+    setIsDirty(false);
+    setFileHandle(null);
+  }, [isDirty, t]);
+
+  // ── Canvas paint ──────────────────────────────
   const onCellPaint = useCallback((action) => {
     if (action.type === 'SET_CELL') {
       if (!selectedColor) return;
@@ -169,40 +213,72 @@ export default function App() {
     } else {
       dispatch(action);
     }
-  }, [selectedColor]);
+  }, [selectedColor, dispatch]);
 
   const onColorPick = useCallback((hexColor) => {
     const match = state.colors.find((c) => c.hex === hexColor);
     if (match) {
       dispatch({ type: 'SELECT_COLOR', id: match.id });
     } else {
-      // Add the picked color to palette
       dispatch({ type: 'ADD_COLOR', data: { hex: hexColor, name: hexColor } });
     }
-  }, [state.colors]);
+  }, [state.colors, dispatch]);
 
   // ── File operations ───────────────────────────
   const handleNew = useCallback(() => setModal('new'), []);
 
   const handleOpen = useCallback(async () => {
+    if (screen === 'canvas' && isDirty && !window.confirm(t.unsavedChanges)) return;
     try {
-      const data = await openBeadFile();
-      dispatch({ type: 'LOAD_PROJECT', data });
+      const result = await openBeadNative();
+      if (!result) return; // cancelled
+      rawDispatch({ type: 'LOAD_PROJECT', data: result.data });
+      setFileHandle(result.fileHandle);
+      setIsDirty(false);
+      setScreen('canvas');
+      pushRecentFile(result.data.projectName || result.fileName);
     } catch (err) {
-      if (err.message !== 'No file selected') alert('Failed to open file: ' + err.message);
+      alert('Failed to open file: ' + err.message);
     }
-  }, []);
+  }, [screen, isDirty, t]);
 
-  const handleSave = useCallback(() => {
-    downloadBead(state);
+  const handleSave = useCallback(async () => {
+    try {
+      const handle = await saveBeadNative(state, fileHandle);
+      // handle is null when: user cancelled picker, or fallback download happened
+      if (handle) {
+        setFileHandle(handle);
+        pushRecentFile(state.projectName);
+      }
+      // In both cases (native handle or download fallback) treat as saved
+      setIsDirty(false);
+    } catch (err) {
+      alert('Save failed: ' + err.message);
+    }
+  }, [state, fileHandle]);
+
+  const handleSaveAs = useCallback(async () => {
+    try {
+      const handle = await saveBeadAs(state);
+      if (handle) {
+        setFileHandle(handle);
+        pushRecentFile(state.projectName);
+      }
+      setIsDirty(false);
+    } catch (err) {
+      alert('Save failed: ' + err.message);
+    }
   }, [state]);
 
   const handleExport = useCallback(() => setModal('export'), []);
 
   // ── Modals ────────────────────────────────────
   const handleNewConfirm = useCallback((data) => {
-    dispatch({ type: 'NEW_PROJECT', data });
+    rawDispatch({ type: 'NEW_PROJECT', data });
+    setFileHandle(null);
+    setIsDirty(false);
     setModal(null);
+    setScreen('canvas');
   }, []);
 
   const handleAddColor = useCallback(() => {
@@ -223,18 +299,45 @@ export default function App() {
     }
     setModal(null);
     setEditingColorId(null);
-  }, [modal, editingColorId]);
+  }, [modal, editingColorId, dispatch]);
 
-  const handleExportConfirm = useCallback((bg, scale) => {
-    exportPng(state, bg, scale);
+  const handleExportConfirm = useCallback(async (bg, scale) => {
+    await exportPngNative(state, bg, scale);
     setModal(null);
   }, [state]);
 
   const editingColor = editingColorId ? state.colors.find((c) => c.id === editingColorId) : null;
 
+  // ── Render ────────────────────────────────────
+
+  if (screen === 'welcome') {
+    return (
+      <>
+        <WelcomeScreen
+          onNew={handleNew}
+          onOpen={handleOpen}
+          t={t}
+          language={language}
+          setLanguage={setLanguage}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+        />
+
+        {modal === 'new' && (
+          <NewProjectModal
+            onConfirm={handleNewConfirm}
+            onCancel={() => setModal(null)}
+            t={t}
+            showWarning={false}
+          />
+        )}
+      </>
+    );
+  }
+
+  // ── Canvas screen ─────────────────────────────
   return (
     <div className="flex flex-col h-full bg-studio-bg">
-      {/* Top bar */}
       <TopBar
         projectName={state.projectName}
         language={language}
@@ -242,16 +345,17 @@ export default function App() {
         onNew={handleNew}
         onOpen={handleOpen}
         onSave={handleSave}
+        onSaveAs={handleSaveAs}
         onExport={handleExport}
         onAbout={() => setModal('about')}
+        onGoHome={handleGoHome}
         isDark={isDark}
         onToggleTheme={toggleTheme}
+        isDirty={isDirty}
         t={t}
       />
 
-      {/* Main layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar */}
         <Sidebar
           tool={state.tool}
           setTool={(tool) => dispatch({ type: 'SET_TOOL', tool })}
@@ -271,7 +375,6 @@ export default function App() {
           t={t}
         />
 
-        {/* Canvas area */}
         <main className="flex-1 overflow-hidden">
           <BeadCanvas
             cells={state.cells}
@@ -288,13 +391,17 @@ export default function App() {
           />
         </main>
 
-        {/* Right: bead counter */}
         <BeadCounter cells={state.cells} colors={state.colors} t={t} />
       </div>
 
       {/* ── Modals ── */}
       {modal === 'new' && (
-        <NewProjectModal onConfirm={handleNewConfirm} onCancel={() => setModal(null)} t={t} />
+        <NewProjectModal
+          onConfirm={handleNewConfirm}
+          onCancel={() => setModal(null)}
+          t={t}
+          showWarning={true}
+        />
       )}
 
       {(modal === 'color-add' || modal === 'color-edit') && (

@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 const GRID_TYPES = ['square', 'brick', 'peyote'];
 
-export default function NewProjectModal({ onConfirm, onCancel, t }) {
+export default function NewProjectModal({ onConfirm, onCancel, t, showWarning = true }) {
   const [name, setName] = useState('New Design');
   const [width, setWidth] = useState(20);
   const [height, setHeight] = useState(20);
@@ -72,9 +72,11 @@ export default function NewProjectModal({ onConfirm, onCancel, t }) {
           </Field>
         </div>
 
-        <p className="mt-4 text-xs text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/20 rounded px-3 py-2">
-          ⚠ {t.newProjectWarning}
-        </p>
+        {showWarning && (
+          <p className="mt-4 text-xs text-yellow-500/80 bg-yellow-500/10 border border-yellow-500/20 rounded px-3 py-2">
+            ⚠ {t.newProjectWarning}
+          </p>
+        )}
 
         <div className="flex gap-3 mt-5 justify-end">
           <button onClick={onCancel} className="btn-ghost">{t.newProjectCancel}</button>
