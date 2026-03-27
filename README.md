@@ -7,7 +7,7 @@
 
   [![Download](https://img.shields.io/github/v/release/rinad12/GridBead?label=Download&color=FF6FA5&style=for-the-badge)](https://github.com/rinad12/GridBead/releases/latest)
   [![Platform](https://img.shields.io/badge/Platform-Windows-FFC1D6?style=for-the-badge&logo=windows)](https://github.com/rinad12/GridBead/releases/latest)
-  [![License](https://img.shields.io/github/license/rinad12/GridBead?color=FF6FA5&style=for-the-badge)](LICENSE)
+  [![License](https://img.shields.io/badge/License-MIT-FF6FA5?style=for-the-badge)](LICENSE)
 
   [🌐 Official Site](https://rinad12.github.io/GridBead/)
 </div>
