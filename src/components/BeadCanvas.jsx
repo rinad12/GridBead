@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { getCellPixelPos } from '../utils/fileUtils.js';
 
 const BASE_CELL = 22; // base bead size in pixels
@@ -109,12 +109,12 @@ function renderGrid(ctx, cells, gridType, width, height, cs, zoom, showGrid, hov
 // ─────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────
-export default function BeadCanvas({
+const BeadCanvas = forwardRef(function BeadCanvas({
   cells, gridType, width, height,
   selectedColor, tool, showGrid,
-  onCellPaint, onColorPick,
+  onCellPaint, onColorPick, onStrokeStart,
   isDark, t,
-}) {
+}, ref) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
@@ -128,8 +128,15 @@ export default function BeadCanvas({
   const [spaceDown, setSpaceDown] = useState(false);
   const panStart = useRef(null);
 
+  // Expose zoom controls to parent via ref
+  useImperativeHandle(ref, () => ({
+    zoomIn:    () => setZoom((z) => Math.min(MAX_ZOOM, z * 1.25)),
+    zoomOut:   () => setZoom((z) => Math.max(MIN_ZOOM, z / 1.25)),
+    resetZoom: () => { setZoom(1); setPan({ x: 40, y: 40 }); },
+  }), []);
+
   // Keep stateRef in sync so event handlers always see fresh values
-  stateRef.current = { zoom, pan, hoverCell, isDrawing, isPanning, spaceDown, cells, gridType, width, height, selectedColor, tool, showGrid, isDark };
+  stateRef.current = { zoom, pan, hoverCell, isDrawing, isPanning, spaceDown, cells, gridType, width, height, selectedColor, tool, showGrid, isDark, onStrokeStart };
 
   // ── Resize observer ──────────────────────────────
   useEffect(() => {
@@ -224,7 +231,7 @@ export default function BeadCanvas({
 
   // ── Mouse events ──────────────────────────────────
   const onMouseDown = useCallback((e) => {
-    const { spaceDown, tool } = stateRef.current;
+    const { spaceDown, tool, onStrokeStart } = stateRef.current;
     if (e.button === 1 || spaceDown) {
       // Middle click or spacebar → pan
       e.preventDefault();
@@ -234,11 +241,11 @@ export default function BeadCanvas({
     }
     if (e.button === 0) {
       setIsDrawing(true);
-      if (tool === 'fill' || tool === 'eyedropper') {
-        paintCell(e);
-      } else {
-        paintCell(e);
+      // Snapshot history at stroke start (pencil/eraser can span many cells via drag)
+      if (tool === 'pencil' || tool === 'eraser') {
+        onStrokeStart?.();
       }
+      paintCell(e);
     }
   }, [paintCell]);
 
@@ -374,4 +381,6 @@ export default function BeadCanvas({
       </div>
     </div>
   );
-}
+});
+
+export default BeadCanvas;

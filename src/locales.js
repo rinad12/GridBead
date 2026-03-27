@@ -3,14 +3,29 @@ const locales = {
     appName: 'GridBead',
     appTagline: 'Beadwork Designer',
 
-    // Top bar
+    // Top bar menus
     file: 'File',
+    edit: 'Edit',
+    view: 'View',
+    help: 'Help',
     newProject: 'New Project',
     open: 'Open',
     save: 'Save',
     exportPng: 'Export PNG',
     about: 'About',
     language: 'Language',
+    clearCanvas: 'Clear Canvas',
+    confirmClear: 'Clear all beads from the canvas?',
+    showGrid: 'Show Grid',
+    showSidebar: 'Show Sidebar',
+    lightMode: 'Light Mode',
+    darkMode: 'Dark Mode',
+    aboutGridBead: 'About GridBead',
+    undo: 'Undo',
+    redo: 'Redo',
+    zoomIn: 'Zoom In',
+    zoomOut: 'Zoom Out',
+    zoomReset: 'Reset Zoom',
 
     // Tools
     tools: 'Tools',
@@ -106,14 +121,29 @@ const locales = {
     appName: 'GridBead',
     appTagline: 'Дизайнер бисерных узоров',
 
-    // Top bar
+    // Top bar menus
     file: 'Файл',
+    edit: 'Правка',
+    view: 'Вид',
+    help: 'Справка',
     newProject: 'Новый проект',
     open: 'Открыть',
     save: 'Сохранить',
     exportPng: 'Экспорт PNG',
     about: 'О программе',
     language: 'Язык',
+    clearCanvas: 'Очистить холст',
+    confirmClear: 'Очистить все бусины с холста?',
+    showGrid: 'Показать сетку',
+    showSidebar: 'Показать панель',
+    lightMode: 'Светлая тема',
+    darkMode: 'Тёмная тема',
+    aboutGridBead: 'О программе GridBead',
+    undo: 'Отменить',
+    redo: 'Повторить',
+    zoomIn: 'Увеличить',
+    zoomOut: 'Уменьшить',
+    zoomReset: 'Сбросить масштаб',
 
     // Tools
     tools: 'Инструменты',

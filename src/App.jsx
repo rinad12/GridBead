@@ -1,4 +1,4 @@
-import { useReducer, useState, useCallback, useEffect } from 'react';
+import { useReducer, useState, useCallback, useEffect, useRef } from 'react';
 import locales from './locales.js';
 import { floodFill } from './utils/floodFill.js';
 import {
@@ -38,7 +38,7 @@ const DEFAULT_COLORS = [
 ];
 
 // ─────────────────────────────────────────────
-// State shape & reducer
+// State & reducer
 // ─────────────────────────────────────────────
 const initialState = {
   projectName: 'New Design',
@@ -54,12 +54,19 @@ const initialState = {
 
 let colorIdCounter = DEFAULT_COLORS.length + 1;
 
-// Actions that mark the project as having unsaved changes
+// Actions that make the project dirty (unsaved)
 const DIRTY_ACTIONS = new Set([
   'SET_CELL', 'ERASE_CELL', 'FLOOD_FILL',
   'ADD_COLOR', 'UPDATE_COLOR', 'DELETE_COLOR',
   'RESIZE_GRID', 'SET_GRID_TYPE', 'SET_PROJECT_NAME',
+  'CLEAR_CELLS',
 ]);
+
+// Single-action operations that push their own history snapshot via dispatch
+// (pencil/eraser strokes are handled by onStrokeStart instead)
+const HISTORY_ACTIONS = new Set(['FLOOD_FILL', 'CLEAR_CELLS']);
+
+const MAX_HISTORY = 20;
 
 function reducer(state, action) {
   switch (action.type) {
@@ -80,6 +87,9 @@ function reducer(state, action) {
       );
       return { ...state, cells: newCells };
     }
+
+    case 'SET_CELLS':
+      return { ...state, cells: action.cells };
 
     case 'SET_GRID_TYPE':
       return { ...state, gridType: action.gridType };
@@ -139,6 +149,9 @@ function reducer(state, action) {
       };
     }
 
+    case 'CLEAR_CELLS':
+      return { ...state, cells: {} };
+
     case 'SET_PROJECT_NAME':
       return { ...state, projectName: action.name };
 
@@ -158,27 +171,107 @@ export default function App() {
   // Screen: 'welcome' | 'canvas'
   const [screen, setScreen] = useState('welcome');
   const [isDirty, setIsDirty] = useState(false);
-  const [fileHandle, setFileHandle] = useState(null); // FileSystemFileHandle | null
+  const [fileHandle, setFileHandle] = useState(null);
+  const [showSidebar, setShowSidebar] = useState(true);
+
+  // Undo/redo history (tracks cells snapshots only)
+  const [history, setHistory] = useState({ past: [], future: [] });
+
+  // Stable ref to current cells — read without stale closure in callbacks
+  const cellsRef = useRef(state.cells);
+  cellsRef.current = state.cells;
+
+  // Ref to BeadCanvas imperative handle (zoom controls)
+  const canvasRef = useRef(null);
 
   const t = locales[language];
 
-  // Wrap dispatch to track dirty state
+  // ── Dispatch wrapper: history + dirty tracking ──────
   const dispatch = useCallback((action) => {
+    if (HISTORY_ACTIONS.has(action.type)) {
+      setHistory((h) => ({
+        past: [...h.past.slice(-(MAX_HISTORY - 1)), cellsRef.current],
+        future: [],
+      }));
+    }
     rawDispatch(action);
     if (DIRTY_ACTIONS.has(action.type)) setIsDirty(true);
   }, []);
 
-  // Warn before browser close when there are unsaved changes
+  // ── Stroke start: snapshot once before a pencil/eraser drag ──
+  const handleStrokeStart = useCallback(() => {
+    setHistory((h) => ({
+      past: [...h.past.slice(-(MAX_HISTORY - 1)), cellsRef.current],
+      future: [],
+    }));
+  }, []);
+
+  // ── Undo / Redo ─────────────────────────────────────
+  const handleUndo = useCallback(() => {
+    setHistory((h) => {
+      if (!h.past.length) return h;
+      const past = h.past.slice();
+      const prev = past.pop();
+      rawDispatch({ type: 'SET_CELLS', cells: prev });
+      setIsDirty(true);
+      return { past, future: [cellsRef.current, ...h.future].slice(0, MAX_HISTORY) };
+    });
+  }, []);
+
+  const handleRedo = useCallback(() => {
+    setHistory((h) => {
+      if (!h.future.length) return h;
+      const future = h.future.slice();
+      const next = future.shift();
+      rawDispatch({ type: 'SET_CELLS', cells: next });
+      setIsDirty(true);
+      return { past: [...h.past, cellsRef.current].slice(-MAX_HISTORY), future };
+    });
+  }, []);
+
+  // ── Zoom (delegates to canvas imperative handle) ────
+  const handleZoomIn    = useCallback(() => canvasRef.current?.zoomIn(),    []);
+  const handleZoomOut   = useCallback(() => canvasRef.current?.zoomOut(),   []);
+  const handleZoomReset = useCallback(() => canvasRef.current?.resetZoom(), []);
+
+  // ── Warn on close with unsaved changes ──────────────
   useEffect(() => {
     const onBeforeUnload = (e) => {
-      if (isDirty && screen === 'canvas') {
-        e.preventDefault();
-        e.returnValue = '';
-      }
+      if (isDirty && screen === 'canvas') { e.preventDefault(); e.returnValue = ''; }
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [isDirty, screen]);
+
+  // ── Global keyboard shortcuts ────────────────────────
+  useEffect(() => {
+    if (screen !== 'canvas') return;
+
+    const onKeyDown = (e) => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      switch (e.key) {
+        case 'z': e.preventDefault(); e.shiftKey ? handleRedo() : handleUndo(); break;
+        case 'y': e.preventDefault(); handleRedo(); break;
+        case 's': e.preventDefault(); e.shiftKey ? handleSaveAs() : handleSave(); break;
+        case 'n': e.preventDefault(); handleNew(); break;
+        case 'o': e.preventDefault(); handleOpen(); break;
+        case '=':
+        case '+': e.preventDefault(); handleZoomIn(); break;
+        case '-': e.preventDefault(); handleZoomOut(); break;
+        case '0': e.preventDefault(); handleZoomReset(); break;
+        default: break;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, handleUndo, handleRedo, handleZoomIn, handleZoomOut, handleZoomReset]);
 
   const toggleTheme = useCallback(() => {
     setIsDark((prev) => {
@@ -188,21 +281,22 @@ export default function App() {
     });
   }, []);
 
-  // Modal states
+  // Modal state
   const [modal, setModal] = useState(null);
   const [editingColorId, setEditingColorId] = useState(null);
 
   const selectedColor = state.colors.find((c) => c.id === state.selectedColorId);
 
-  // ── Navigation ────────────────────────────────
+  // ── Navigation ────────────────────────────────────────
   const handleGoHome = useCallback(() => {
     if (isDirty && !window.confirm(t.unsavedChanges)) return;
     setScreen('welcome');
     setIsDirty(false);
     setFileHandle(null);
+    setHistory({ past: [], future: [] });
   }, [isDirty, t]);
 
-  // ── Canvas paint ──────────────────────────────
+  // ── Canvas paint ──────────────────────────────────────
   const onCellPaint = useCallback((action) => {
     if (action.type === 'SET_CELL') {
       if (!selectedColor) return;
@@ -217,24 +311,29 @@ export default function App() {
 
   const onColorPick = useCallback((hexColor) => {
     const match = state.colors.find((c) => c.hex === hexColor);
-    if (match) {
-      dispatch({ type: 'SELECT_COLOR', id: match.id });
-    } else {
-      dispatch({ type: 'ADD_COLOR', data: { hex: hexColor, name: hexColor } });
-    }
+    if (match) dispatch({ type: 'SELECT_COLOR', id: match.id });
+    else        dispatch({ type: 'ADD_COLOR', data: { hex: hexColor, name: hexColor } });
   }, [state.colors, dispatch]);
 
-  // ── File operations ───────────────────────────
+  // ── Edit ─────────────────────────────────────────────
+  const handleClearCanvas = useCallback(() => {
+    if (!Object.keys(state.cells).length) return;
+    if (!window.confirm(t.confirmClear)) return;
+    dispatch({ type: 'CLEAR_CELLS' });
+  }, [state.cells, t, dispatch]);
+
+  // ── File ─────────────────────────────────────────────
   const handleNew = useCallback(() => setModal('new'), []);
 
   const handleOpen = useCallback(async () => {
     if (screen === 'canvas' && isDirty && !window.confirm(t.unsavedChanges)) return;
     try {
       const result = await openBeadNative();
-      if (!result) return; // cancelled
+      if (!result) return;
       rawDispatch({ type: 'LOAD_PROJECT', data: result.data });
       setFileHandle(result.fileHandle);
       setIsDirty(false);
+      setHistory({ past: [], future: [] });
       setScreen('canvas');
       pushRecentFile(result.data.projectName || result.fileName);
     } catch (err) {
@@ -245,12 +344,7 @@ export default function App() {
   const handleSave = useCallback(async () => {
     try {
       const handle = await saveBeadNative(state, fileHandle);
-      // handle is null when: user cancelled picker, or fallback download happened
-      if (handle) {
-        setFileHandle(handle);
-        pushRecentFile(state.projectName);
-      }
-      // In both cases (native handle or download fallback) treat as saved
+      if (handle) { setFileHandle(handle); pushRecentFile(state.projectName); }
       setIsDirty(false);
     } catch (err) {
       alert('Save failed: ' + err.message);
@@ -260,10 +354,7 @@ export default function App() {
   const handleSaveAs = useCallback(async () => {
     try {
       const handle = await saveBeadAs(state);
-      if (handle) {
-        setFileHandle(handle);
-        pushRecentFile(state.projectName);
-      }
+      if (handle) { setFileHandle(handle); pushRecentFile(state.projectName); }
       setIsDirty(false);
     } catch (err) {
       alert('Save failed: ' + err.message);
@@ -272,31 +363,22 @@ export default function App() {
 
   const handleExport = useCallback(() => setModal('export'), []);
 
-  // ── Modals ────────────────────────────────────
+  // ── Modals ────────────────────────────────────────────
   const handleNewConfirm = useCallback((data) => {
     rawDispatch({ type: 'NEW_PROJECT', data });
     setFileHandle(null);
     setIsDirty(false);
+    setHistory({ past: [], future: [] });
     setModal(null);
     setScreen('canvas');
   }, []);
 
-  const handleAddColor = useCallback(() => {
-    setEditingColorId(null);
-    setModal('color-add');
-  }, []);
-
-  const handleEditColor = useCallback((id) => {
-    setEditingColorId(id);
-    setModal('color-edit');
-  }, []);
+  const handleAddColor  = useCallback(() => { setEditingColorId(null); setModal('color-add'); }, []);
+  const handleEditColor = useCallback((id) => { setEditingColorId(id); setModal('color-edit'); }, []);
 
   const handleColorConfirm = useCallback((data) => {
-    if (modal === 'color-edit' && editingColorId) {
-      dispatch({ type: 'UPDATE_COLOR', id: editingColorId, data });
-    } else {
-      dispatch({ type: 'ADD_COLOR', data });
-    }
+    if (modal === 'color-edit' && editingColorId) dispatch({ type: 'UPDATE_COLOR', id: editingColorId, data });
+    else dispatch({ type: 'ADD_COLOR', data });
     setModal(null);
     setEditingColorId(null);
   }, [modal, editingColorId, dispatch]);
@@ -308,7 +390,7 @@ export default function App() {
 
   const editingColor = editingColorId ? state.colors.find((c) => c.id === editingColorId) : null;
 
-  // ── Render ────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────
 
   if (screen === 'welcome') {
     return (
@@ -322,24 +404,17 @@ export default function App() {
           isDark={isDark}
           onToggleTheme={toggleTheme}
         />
-
         {modal === 'new' && (
-          <NewProjectModal
-            onConfirm={handleNewConfirm}
-            onCancel={() => setModal(null)}
-            t={t}
-            showWarning={false}
-          />
+          <NewProjectModal onConfirm={handleNewConfirm} onCancel={() => setModal(null)} t={t} showWarning={false} />
         )}
       </>
     );
   }
 
-  // ── Canvas screen ─────────────────────────────
+  // ── Canvas screen ──────────────────────────────────────
   return (
     <div className="flex flex-col h-full bg-studio-bg">
       <TopBar
-        projectName={state.projectName}
         language={language}
         setLanguage={setLanguage}
         onNew={handleNew}
@@ -347,36 +422,51 @@ export default function App() {
         onSave={handleSave}
         onSaveAs={handleSaveAs}
         onExport={handleExport}
+        onClearCanvas={handleClearCanvas}
         onAbout={() => setModal('about')}
         onGoHome={handleGoHome}
         isDark={isDark}
         onToggleTheme={toggleTheme}
         isDirty={isDirty}
+        showGrid={state.showGrid}
+        onToggleGrid={() => dispatch({ type: 'TOGGLE_GRID' })}
+        showSidebar={showSidebar}
+        onToggleSidebar={() => setShowSidebar((v) => !v)}
+        canUndo={history.past.length > 0}
+        canRedo={history.future.length > 0}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
         t={t}
       />
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar
-          tool={state.tool}
-          setTool={(tool) => dispatch({ type: 'SET_TOOL', tool })}
-          gridType={state.gridType}
-          setGridType={(gridType) => dispatch({ type: 'SET_GRID_TYPE', gridType })}
-          gridWidth={state.width}
-          gridHeight={state.height}
-          onResize={(w, h) => dispatch({ type: 'RESIZE_GRID', width: w, height: h })}
-          colors={state.colors}
-          selectedColorId={state.selectedColorId}
-          onSelectColor={(id) => dispatch({ type: 'SELECT_COLOR', id })}
-          onAddColor={handleAddColor}
-          onEditColor={handleEditColor}
-          onDeleteColor={(id) => dispatch({ type: 'DELETE_COLOR', id })}
-          showGrid={state.showGrid}
-          toggleGrid={() => dispatch({ type: 'TOGGLE_GRID' })}
-          t={t}
-        />
+        {showSidebar && (
+          <Sidebar
+            tool={state.tool}
+            setTool={(tool) => dispatch({ type: 'SET_TOOL', tool })}
+            gridType={state.gridType}
+            setGridType={(gridType) => dispatch({ type: 'SET_GRID_TYPE', gridType })}
+            gridWidth={state.width}
+            gridHeight={state.height}
+            onResize={(w, h) => dispatch({ type: 'RESIZE_GRID', width: w, height: h })}
+            colors={state.colors}
+            selectedColorId={state.selectedColorId}
+            onSelectColor={(id) => dispatch({ type: 'SELECT_COLOR', id })}
+            onAddColor={handleAddColor}
+            onEditColor={handleEditColor}
+            onDeleteColor={(id) => dispatch({ type: 'DELETE_COLOR', id })}
+            showGrid={state.showGrid}
+            toggleGrid={() => dispatch({ type: 'TOGGLE_GRID' })}
+            t={t}
+          />
+        )}
 
         <main className="flex-1 overflow-hidden">
           <BeadCanvas
+            ref={canvasRef}
             cells={state.cells}
             gridType={state.gridType}
             width={state.width}
@@ -386,24 +476,21 @@ export default function App() {
             showGrid={state.showGrid}
             onCellPaint={onCellPaint}
             onColorPick={onColorPick}
+            onStrokeStart={handleStrokeStart}
             isDark={isDark}
             t={t}
           />
         </main>
 
-        <BeadCounter cells={state.cells} colors={state.colors} t={t} />
+        {showSidebar && (
+          <BeadCounter cells={state.cells} colors={state.colors} t={t} />
+        )}
       </div>
 
       {/* ── Modals ── */}
       {modal === 'new' && (
-        <NewProjectModal
-          onConfirm={handleNewConfirm}
-          onCancel={() => setModal(null)}
-          t={t}
-          showWarning={true}
-        />
+        <NewProjectModal onConfirm={handleNewConfirm} onCancel={() => setModal(null)} t={t} showWarning={true} />
       )}
-
       {(modal === 'color-add' || modal === 'color-edit') && (
         <ColorEditModal
           initial={editingColor ?? null}
@@ -412,11 +499,9 @@ export default function App() {
           t={t}
         />
       )}
-
       {modal === 'export' && (
         <ExportModal onConfirm={handleExportConfirm} onCancel={() => setModal(null)} t={t} />
       )}
-
       {modal === 'about' && (
         <AboutModal onClose={() => setModal(null)} t={t} />
       )}
