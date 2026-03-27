@@ -166,7 +166,7 @@ function reducer(state, action) {
 export default function App() {
   const [state, rawDispatch] = useReducer(reducer, initialState);
   const [language, setLanguage] = useState('en');
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
 
   // Screen: 'welcome' | 'canvas'
   const [screen, setScreen] = useState('welcome');
