@@ -4,7 +4,7 @@ export default function TopBar({
   language, setLanguage,
   onNew, onOpen, onSave, onSaveAs, onExport,
   onClearCanvas,
-  onAbout,
+  onAbout, onCheckForUpdates, updateAvailable,
   onGoHome,
   isDark, onToggleTheme,
   isDirty,
@@ -72,7 +72,15 @@ export default function TopBar({
       </Menu>
 
       {/* ── Help menu ── */}
-      <Menu label={t.help}>
+      <Menu label={
+        <span className="flex items-center gap-1">
+          {t.help}
+          {updateAvailable && <span className="w-1.5 h-1.5 rounded-full bg-studio-accent inline-block" />}
+        </span>
+      }>
+        {onCheckForUpdates && (
+          <DropItem label={t.checkForUpdates} icon="↑" onClick={onCheckForUpdates} />
+        )}
         <DropItem label={t.aboutGridBead} icon="ℹ" onClick={onAbout} />
       </Menu>
 

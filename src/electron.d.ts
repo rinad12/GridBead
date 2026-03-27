@@ -6,6 +6,8 @@ interface ElectronAPI {
   showOpenDialog(): Promise<string | null>;
   writeFile(filePath: string, content: string): Promise<void>;
   readFile(filePath: string): Promise<string>;
+  checkForUpdates(): Promise<void>;
+  onUpdateAvailable(callback: () => void): () => void;
 }
 
 interface Window {

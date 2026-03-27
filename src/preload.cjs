@@ -72,6 +72,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('app:confirm-close');
   },
 
+  /** Manually trigger an update check */
+  checkForUpdates() {
+    return ipcRenderer.invoke('app:check-for-updates');
+  },
+
+  /** Fires when an update is available (download started automatically) */
+  onUpdateAvailable(callback) {
+    const handler = () => callback();
+    ipcRenderer.on('app:update-available', handler);
+    return () => ipcRenderer.removeListener('app:update-available', handler);
+  },
+
   /** OS-level keyboard shortcuts forwarded from main process */
   onShortcut(name, callback) {
     const channel = `app:shortcut-${name}`;

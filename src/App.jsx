@@ -370,6 +370,18 @@ export default function App() {
   }, []);
 
   // Modal state
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  // ── Auto-update notifications ────────────────────────────────
+  useEffect(() => {
+    if (!window.electronAPI?.onUpdateAvailable) return;
+    return window.electronAPI.onUpdateAvailable(() => setUpdateAvailable(true));
+  }, []);
+
+  const handleCheckForUpdates = window.electronAPI?.checkForUpdates
+    ? () => window.electronAPI.checkForUpdates()
+    : null;
+
   const [modal, setModal] = useState(null);
   const [editingColorId, setEditingColorId] = useState(null);
 
@@ -535,6 +547,8 @@ export default function App() {
         onExport={handleExport}
         onClearCanvas={handleClearCanvas}
         onAbout={() => setModal('about')}
+        onCheckForUpdates={handleCheckForUpdates}
+        updateAvailable={updateAvailable}
         onGoHome={handleGoHome}
         isDark={isDark}
         onToggleTheme={toggleTheme}

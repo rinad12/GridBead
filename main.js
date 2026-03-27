@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, globalShortcut } from 'elect
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
+import { autoUpdater } from 'electron-updater';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -67,9 +68,43 @@ function createWindow() {
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
+// ── Auto-updater ──────────────────────────────────────────────
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', () => {
+    mainWindow?.webContents.send('app:update-available');
+  });
+
+  autoUpdater.on('update-downloaded', async () => {
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type:    'info',
+      title:   'Update Ready',
+      message: 'A new version of GridBead Studio has been downloaded.',
+      detail:  'Restart now to apply the update?',
+      buttons: ['Restart Now', 'Later'],
+      defaultId: 0,
+      cancelId:  1,
+    });
+    if (response === 0) autoUpdater.quitAndInstall();
+  });
+
+  autoUpdater.on('error', (err) => {
+    // Silently ignore network/no-internet errors; log others in dev
+    if (isDev) console.error('Auto-updater error:', err.message);
+  });
+
+  // Check after a short delay so the window is fully loaded
+  setTimeout(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+  }, 3000);
+}
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   createWindow();
+  if (!isDev) setupAutoUpdater();
 
   // ── Global shortcuts (work even after native menu is removed) ──
   // DevTools
@@ -136,4 +171,13 @@ ipcMain.handle('fs:write', async (_e, filePath, content) => {
 // ── IPC: Read file ────────────────────────────────────────────
 ipcMain.handle('fs:read', async (_e, filePath) => {
   return fs.readFile(filePath, 'utf-8');
+});
+
+// ── IPC: Check for updates manually ──────────────────────────
+ipcMain.handle('app:check-for-updates', async () => {
+  try {
+    await autoUpdater.checkForUpdates();
+  } catch {
+    // No internet or no published release — ignore
+  }
 });
