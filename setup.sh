@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────
-# Loomy – Project Setup & Structured Git Commit Script
+# GridBead – Project Setup & Structured Git Commit Script
 # Run this once after cloning / initialising the repo.
 # ─────────────────────────────────────────────────────────────
 set -e
 
 echo ""
 echo "╔══════════════════════════════════════╗"
-echo "║   Loomy – Beadwork Designer Setup   ║"
+echo "║   GridBead – Beadwork Designer Setup   ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
@@ -28,7 +28,7 @@ git add \
   src/main.jsx \
   src/index.css
 
-git commit -m "chore: initialise Loomy project (Vite + React + Tailwind CSS)"
+git commit -m "chore: initialise GridBead project (Vite + React + Tailwind CSS)"
 echo "  ✔ Boilerplate committed."
 echo ""
 
@@ -77,6 +77,6 @@ echo ""
 
 # ── 5. Done ──────────────────────────────────────────────────
 echo "╔══════════════════════════════════════════════════════╗"
-echo "║  Setup complete!  Run → npm run dev  to launch Loomy ║"
+echo "║  Setup complete!  Run → npm run dev  to launch GridBead ║"
 echo "╚══════════════════════════════════════════════════════╝"
 echo ""

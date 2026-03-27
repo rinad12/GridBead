@@ -1,6 +1,6 @@
 const locales = {
   en: {
-    appName: 'Loomy',
+    appName: 'GridBead',
     appTagline: 'Beadwork Designer',
 
     // Top bar
@@ -79,9 +79,9 @@ const locales = {
     exportCancel: 'Cancel',
 
     // About
-    aboutTitle: 'About Loomy',
+    aboutTitle: 'About GridBead',
     aboutDesc:
-      'Loomy: A professional tool for manual beadwork design featuring real-time bead counting and multi-stitch support (Loom, Brick, Peyote).',
+      'GridBead: A professional tool for manual beadwork design featuring real-time bead counting and multi-stitch support (Loom, Brick, Peyote).',
     aboutVersion: 'Version 1.0.0',
     aboutClose: 'Close',
 
@@ -95,7 +95,7 @@ const locales = {
   },
 
   ru: {
-    appName: 'Loomy',
+    appName: 'GridBead',
     appTagline: 'Дизайнер бисерных узоров',
 
     // Top bar
@@ -174,9 +174,9 @@ const locales = {
     exportCancel: 'Отмена',
 
     // About
-    aboutTitle: 'О программе Loomy',
+    aboutTitle: 'О программе GridBead',
     aboutDesc:
-      'Loomy: Профессиональный инструмент для ручного проектирования бисерных узоров с подсчётом бисера в реальном времени и поддержкой нескольких техник (ткацкая, кирпичный стежок, пейот).',
+      'GridBead: Профессиональный инструмент для ручного проектирования бисерных узоров с подсчётом бисера в реальном времени и поддержкой нескольких техник (ткацкая, кирпичный стежок, пейот).',
     aboutVersion: 'Версия 1.0.0',
     aboutClose: 'Закрыть',
 

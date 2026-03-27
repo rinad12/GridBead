@@ -24,7 +24,7 @@ export function downloadBead(state) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${state.projectName.replace(/\s+/g, '_') || 'loomy_design'}.bead`;
+  a.download = `${state.projectName.replace(/\s+/g, '_') || 'gridbead_design'}.bead`;
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -126,7 +126,7 @@ export function exportPng(state, bg = 'transparent', scale = 40) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(state.projectName || 'loomy_design').replace(/\s+/g, '_')}.png`;
+    a.download = `${(state.projectName || 'gridbead_design').replace(/\s+/g, '_')}.png`;
     a.click();
     URL.revokeObjectURL(url);
   }, 'image/png');
