@@ -3,7 +3,8 @@ import locales from './locales.js';
 import { floodFill } from './utils/floodFill.js';
 import {
   saveBeadNative, saveBeadAs,
-  openBeadNative, exportPngNative,
+  openBeadNative, openBeadgridFromPath,
+  exportPngNative,
   pushRecentFile,
 } from './utils/fileUtils.js';
 
@@ -234,8 +235,46 @@ export default function App() {
   const handleZoomOut   = useCallback(() => canvasRef.current?.zoomOut(),   []);
   const handleZoomReset = useCallback(() => canvasRef.current?.resetZoom(), []);
 
-  // ── Warn on close with unsaved changes ──────────────
+  // ── Handle file opened via OS file association (Electron) ────
   useEffect(() => {
+    if (!window.electronAPI?.onOpenFile) return;
+    return window.electronAPI.onOpenFile(async (filePath) => {
+      try {
+        const result = await openBeadgridFromPath(filePath);
+        rawDispatch({ type: 'LOAD_PROJECT', data: result.data });
+        setFileHandle(result.fileHandle);
+        setIsDirty(false);
+        setHistory({ past: [], future: [] });
+        setScreen('canvas');
+        pushRecentFile(result.data.projectName || result.fileName, filePath);
+      } catch (err) {
+        alert('Failed to open file: ' + err.message);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Window title: show unsaved indicator ─────────────
+  useEffect(() => {
+    document.title = isDirty ? '● GridBead Studio' : 'GridBead Studio';
+  }, [isDirty]);
+
+  // ── Electron: handle OS close button ────────────────
+  // main.js intercepts the close event and asks us; we confirm or cancel.
+  useEffect(() => {
+    if (!window.electronAPI?.onRequestClose) return;
+    return window.electronAPI.onRequestClose(() => {
+      if (isDirty && screen === 'canvas') {
+        const ok = window.confirm('You have unsaved changes. Close anyway?');
+        if (!ok) return;
+      }
+      window.electronAPI.confirmClose();
+    });
+  }, [isDirty, screen]);
+
+  // ── Browser-only: warn on tab/window close ───────────
+  useEffect(() => {
+    if (window.electronAPI) return; // Electron handles this via IPC above
     const onBeforeUnload = (e) => {
       if (isDirty && screen === 'canvas') { e.preventDefault(); e.returnValue = ''; }
     };
@@ -243,23 +282,47 @@ export default function App() {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [isDirty, screen]);
 
-  // ── Global keyboard shortcuts ────────────────────────
+  // Stable refs so handlers are never stale inside keyboard closures
+  const handleSaveRef   = useRef(null);
+  const handleSaveAsRef = useRef(null);
+  const handleNewRef    = useRef(null);
+  const handleOpenRef   = useRef(null);
+
+  // ── Electron global shortcuts forwarded from main process via IPC ─
   useEffect(() => {
+    if (!window.electronAPI?.onShortcut) return;
+    const unsubs = [
+      window.electronAPI.onShortcut('save',       () => handleSaveRef.current?.()),
+      window.electronAPI.onShortcut('save-as',    () => handleSaveAsRef.current?.()),
+      window.electronAPI.onShortcut('open',       () => handleOpenRef.current?.()),
+      window.electronAPI.onShortcut('new',        () => handleNewRef.current?.()),
+      window.electronAPI.onShortcut('undo',       () => handleUndo()),
+      window.electronAPI.onShortcut('redo',       () => handleRedo()),
+      window.electronAPI.onShortcut('zoom-in',    () => handleZoomIn()),
+      window.electronAPI.onShortcut('zoom-out',   () => handleZoomOut()),
+      window.electronAPI.onShortcut('zoom-reset', () => handleZoomReset()),
+    ];
+    return () => unsubs.forEach((fn) => fn());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Browser / non-Electron keyboard shortcuts ─────────
+  useEffect(() => {
+    if (window.electronAPI) return; // handled by globalShortcut above
     if (screen !== 'canvas') return;
 
     const onKeyDown = (e) => {
       const tag = e.target.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-
       const ctrl = e.ctrlKey || e.metaKey;
       if (!ctrl) return;
 
       switch (e.key) {
         case 'z': e.preventDefault(); e.shiftKey ? handleRedo() : handleUndo(); break;
         case 'y': e.preventDefault(); handleRedo(); break;
-        case 's': e.preventDefault(); e.shiftKey ? handleSaveAs() : handleSave(); break;
-        case 'n': e.preventDefault(); handleNew(); break;
-        case 'o': e.preventDefault(); handleOpen(); break;
+        case 's': e.preventDefault(); e.shiftKey ? handleSaveAsRef.current?.() : handleSaveRef.current?.(); break;
+        case 'n': e.preventDefault(); handleNewRef.current?.(); break;
+        case 'o': e.preventDefault(); handleOpenRef.current?.(); break;
         case '=':
         case '+': e.preventDefault(); handleZoomIn(); break;
         case '-': e.preventDefault(); handleZoomOut(); break;
@@ -270,7 +333,32 @@ export default function App() {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, handleUndo, handleRedo, handleZoomIn, handleZoomOut, handleZoomReset]);
+
+  // ── Undo/Redo/Zoom still need renderer-side keys in Electron ───
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    if (screen !== 'canvas') return;
+
+    const onKeyDown = (e) => {
+      const tag = e.target.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      switch (e.key) {
+        case 'z': e.preventDefault(); e.shiftKey ? handleRedo() : handleUndo(); break;
+        case 'y': e.preventDefault(); handleRedo(); break;
+        case '=':
+        case '+': e.preventDefault(); handleZoomIn(); break;
+        case '-': e.preventDefault(); handleZoomOut(); break;
+        case '0': e.preventDefault(); handleZoomReset(); break;
+        default: break;
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [screen, handleUndo, handleRedo, handleZoomIn, handleZoomOut, handleZoomReset]);
 
   const toggleTheme = useCallback(() => {
@@ -335,7 +423,8 @@ export default function App() {
       setIsDirty(false);
       setHistory({ past: [], future: [] });
       setScreen('canvas');
-      pushRecentFile(result.data.projectName || result.fileName);
+      pushRecentFile(result.data.projectName || result.fileName,
+        typeof result.fileHandle === 'string' ? result.fileHandle : null);
     } catch (err) {
       alert('Failed to open file: ' + err.message);
     }
@@ -344,7 +433,7 @@ export default function App() {
   const handleSave = useCallback(async () => {
     try {
       const handle = await saveBeadNative(state, fileHandle);
-      if (handle) { setFileHandle(handle); pushRecentFile(state.projectName); }
+      if (handle) { setFileHandle(handle); pushRecentFile(state.projectName, typeof handle === 'string' ? handle : null); }
       setIsDirty(false);
     } catch (err) {
       alert('Save failed: ' + err.message);
@@ -354,12 +443,33 @@ export default function App() {
   const handleSaveAs = useCallback(async () => {
     try {
       const handle = await saveBeadAs(state);
-      if (handle) { setFileHandle(handle); pushRecentFile(state.projectName); }
+      if (handle) { setFileHandle(handle); pushRecentFile(state.projectName, typeof handle === 'string' ? handle : null); }
       setIsDirty(false);
     } catch (err) {
       alert('Save failed: ' + err.message);
     }
   }, [state]);
+
+  // Keep refs up-to-date on every render so the keyboard handler is never stale
+  handleSaveRef.current   = handleSave;
+  handleSaveAsRef.current = handleSaveAs;
+  handleNewRef.current    = handleNew;
+  handleOpenRef.current   = handleOpen;
+
+  const handleOpenRecent = useCallback(async (filePath) => {
+    if (!filePath) { handleOpen(); return; }
+    try {
+      const result = await openBeadgridFromPath(filePath);
+      rawDispatch({ type: 'LOAD_PROJECT', data: result.data });
+      setFileHandle(result.fileHandle);
+      setIsDirty(false);
+      setHistory({ past: [], future: [] });
+      setScreen('canvas');
+      pushRecentFile(result.data.projectName || result.fileName, filePath);
+    } catch (err) {
+      alert('Failed to open file: ' + err.message);
+    }
+  }, [handleOpen]);
 
   const handleExport = useCallback(() => setModal('export'), []);
 
@@ -398,6 +508,7 @@ export default function App() {
         <WelcomeScreen
           onNew={handleNew}
           onOpen={handleOpen}
+          onOpenRecent={handleOpenRecent}
           t={t}
           language={language}
           setLanguage={setLanguage}

@@ -11,7 +11,7 @@ function formatDate(iso) {
   }
 }
 
-export default function WelcomeScreen({ onNew, onOpen, t, language, isDark, onToggleTheme, setLanguage }) {
+export default function WelcomeScreen({ onNew, onOpen, onOpenRecent, t, language, isDark, onToggleTheme, setLanguage }) {
   const [recentFiles] = useState(() => loadRecentFiles());
 
   return (
@@ -29,7 +29,7 @@ export default function WelcomeScreen({ onNew, onOpen, t, language, isDark, onTo
           {/* Brand */}
           <div className="flex flex-col items-center gap-4 text-center">
             <img
-              src="/icon.png"
+              src="./icon.png"
               alt="GridBead"
               className="w-20 h-20 rounded-2xl shadow-lg"
             />
@@ -76,7 +76,7 @@ export default function WelcomeScreen({ onNew, onOpen, t, language, isDark, onTo
                 {recentFiles.map((f, i) => (
                   <button
                     key={i}
-                    onClick={onOpen}
+                    onClick={() => (onOpenRecent ?? onOpen)(f.filePath)}
                     className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-xl bg-studio-panel border border-studio-border hover:border-studio-muted transition-colors group"
                   >
                     <IconFile className="text-studio-accent flex-shrink-0" />
