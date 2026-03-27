@@ -2,7 +2,8 @@ import { app, BrowserWindow, ipcMain, dialog, Menu, globalShortcut } from 'elect
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
-import { autoUpdater } from 'electron-updater';
+import updaterPkg from 'electron-updater';
+const { autoUpdater } = updaterPkg;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
