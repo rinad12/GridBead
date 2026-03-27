@@ -57,7 +57,7 @@ function pixelToCell(px, py, gridType, cs, gridW, gridH) {
 // ─────────────────────────────────────────────
 // Drawing helpers
 // ─────────────────────────────────────────────
-function drawBead(ctx, cx, cy, radius, color, showGrid, isHover, zoom) {
+function drawBead(ctx, cx, cy, radius, color, showGrid, isHover, zoom, emptyColor) {
   ctx.beginPath();
   ctx.arc(cx, cy, radius, 0, Math.PI * 2);
 
@@ -75,13 +75,12 @@ function drawBead(ctx, cx, cy, radius, color, showGrid, isHover, zoom) {
     ctx.fillStyle = grad;
     ctx.fill();
   } else {
-    // Empty bead hole
-    ctx.fillStyle = '#16162a';
+    ctx.fillStyle = emptyColor;
     ctx.fill();
   }
 
   if (showGrid || isHover) {
-    ctx.strokeStyle = isHover ? 'rgba(255,255,255,0.85)' : 'rgba(80,80,140,0.5)';
+    ctx.strokeStyle = isHover ? 'rgba(128,128,200,0.9)' : 'rgba(128,128,180,0.35)';
     ctx.lineWidth = isHover ? Math.max(1.5, 1.5 / zoom) : Math.max(0.4, 0.6 / zoom);
     ctx.stroke();
   }
@@ -93,7 +92,7 @@ function drawBead(ctx, cx, cy, radius, color, showGrid, isHover, zoom) {
   }
 }
 
-function renderGrid(ctx, cells, gridType, width, height, cs, zoom, showGrid, hoverCell) {
+function renderGrid(ctx, cells, gridType, width, height, cs, zoom, showGrid, hoverCell, emptyColor) {
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       const { x, y } = getCellPixelPos(col, row, gridType, cs);
@@ -102,7 +101,7 @@ function renderGrid(ctx, cells, gridType, width, height, cs, zoom, showGrid, hov
       const radius = cs / 2 - Math.max(0.5, 0.8 / zoom);
       const color = cells[`${col},${row}`] ?? null;
       const isHover = hoverCell?.col === col && hoverCell?.row === row;
-      drawBead(ctx, cx, cy, radius, color, showGrid, isHover, zoom);
+      drawBead(ctx, cx, cy, radius, color, showGrid, isHover, zoom, emptyColor);
     }
   }
 }
@@ -114,7 +113,7 @@ export default function BeadCanvas({
   cells, gridType, width, height,
   selectedColor, tool, showGrid,
   onCellPaint, onColorPick,
-  t,
+  isDark, t,
 }) {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
@@ -130,7 +129,7 @@ export default function BeadCanvas({
   const panStart = useRef(null);
 
   // Keep stateRef in sync so event handlers always see fresh values
-  stateRef.current = { zoom, pan, hoverCell, isDrawing, isPanning, spaceDown, cells, gridType, width, height, selectedColor, tool, showGrid };
+  stateRef.current = { zoom, pan, hoverCell, isDrawing, isPanning, spaceDown, cells, gridType, width, height, selectedColor, tool, showGrid, isDark };
 
   // ── Resize observer ──────────────────────────────
   useEffect(() => {
@@ -157,20 +156,21 @@ export default function BeadCanvas({
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
-      const { zoom, pan, hoverCell, cells, gridType, width, height, showGrid } = stateRef.current;
+      const { zoom, pan, hoverCell, cells, gridType, width, height, showGrid, isDark } = stateRef.current;
+      const emptyColor = isDark ? '#16162a' : '#e8eaf2';
       const cs = BASE_CELL * zoom;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.save();
       ctx.translate(pan.x, pan.y);
-      renderGrid(ctx, cells, gridType, width, height, cs, zoom, showGrid, hoverCell);
+      renderGrid(ctx, cells, gridType, width, height, cs, zoom, showGrid, hoverCell, emptyColor);
       ctx.restore();
     });
   }, []);
 
   // Re-render when props change
   useEffect(() => { scheduleRender(); },
-    [cells, gridType, width, height, showGrid, zoom, pan, hoverCell, scheduleRender]);
+    [cells, gridType, width, height, showGrid, zoom, pan, hoverCell, isDark, scheduleRender]);
 
   // ── Keyboard: spacebar for pan mode ──────────────
   useEffect(() => {

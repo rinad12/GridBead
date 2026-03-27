@@ -141,7 +141,16 @@ function reducer(state, action) {
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [language, setLanguage] = useState('en');
+  const [isDark, setIsDark] = useState(true);
   const t = locales[language];
+
+  const toggleTheme = useCallback(() => {
+    setIsDark((prev) => {
+      const next = !prev;
+      document.documentElement.classList.toggle('light', !next);
+      return next;
+    });
+  }, []);
 
   // Modal states
   const [modal, setModal] = useState(null); // 'new' | 'color-add' | 'color-edit' | 'export' | 'about'
@@ -235,6 +244,8 @@ export default function App() {
         onSave={handleSave}
         onExport={handleExport}
         onAbout={() => setModal('about')}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
         t={t}
       />
 
@@ -272,6 +283,7 @@ export default function App() {
             showGrid={state.showGrid}
             onCellPaint={onCellPaint}
             onColorPick={onColorPick}
+            isDark={isDark}
             t={t}
           />
         </main>
